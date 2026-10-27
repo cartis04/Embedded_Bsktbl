@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ESP32 Controller</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+  :root {
+    --bg: #f4f5f7; --card: #ffffff; --text: #1a1c20; --muted: #6b7280;
+    --accent: #2563eb; --on: #f5b301; --off: #d1d5db; --ok: #16a34a; --bad: #dc2626;
+    --border: #e5e7eb; --input: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1115; --card: #1a1d23; --text: #eef0f3; --muted: #9aa1ad;
+      --accent: #5b8def; --off: #3a3f48; --border: #2a2e36; --input: #11141a;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  body { padding: calc(16px + env(safe-area-inset-top, 0px)) 16px calc(16px + env(safe-area-inset-bottom, 0px)); max-width: 480px; margin: 0 auto; }
+  h1 { font-size: 1.3rem; margin: 0 0 12px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin-bottom: 14px; }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--bad); display: inline-block; margin-right: 8px; }
+  .dot.on { background: var(--ok); }
+  button { font: inherit; border: 0; border-radius: 12px; padding: 14px 18px; background: var(--accent); color: #fff; font-weight: 600; cursor: pointer; }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  button.secondary { background: var(--off); color: var(--text); }
+  button.small { padding: 8px 12px; font-size: .85rem; }
+  input { font: inherit; width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--input); color: var(--text); margin-bottom: 8px; }
+  .btns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 12px; }
+  .bulb { width: 72px; height: 72px; border-radius: 50%; background: var(--off); transition: .2s; margin: 0 auto 6px; }
+  .bulb.on { background: var(--on); box-shadow: 0 0 28px var(--on); }
+  .center { text-align: center; }
+  .label { color: var(--muted); font-size: .85rem; }
+  #banner { font-size: 1.5rem; font-weight: 700; text-align: center; padding: 18px 8px; border-radius: 12px; background: var(--bg); transition: .2s; }
+  #banner.flash { background: var(--accent); color: #fff; }
+  #log { font-family: ui-monospace, Menlo, monospace; font-size: .8rem; color: var(--muted); max-height: 120px; overflow-y: auto; margin-top: 10px; }
+  #warn, #cfgwarn, #authmsg { display: none; border-radius: 12px; padding: 12px; margin-bottom: 14px; font-size: .9rem; background: #fef3c7; color: #78350f; }
+  #authmsg { margin: 8px 0 0; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+  .stat { background: var(--bg); border-radius: 12px; padding: 12px; text-align: center; }
+  .stat b { display: block; font-size: 1.8rem; }
+  .authbtns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+</style>
+</head>
+<body>
+  <h1>ESP32 Controller</h1>
+
+  <div id="warn">Web Bluetooth is not available in this browser. Use Chrome on Android or desktop, or the Bluefy browser on iPhone.</div>
+  <div id="cfgwarn">Supabase is not configured yet. Edit SUPABASE_URL and SUPABASE_ANON_KEY at the top of the script. The app still works for Bluetooth, but nothing is saved.</div>
+
+  <!-- Account / stats -->
+  <div class="card" id="authCard">
+    <div id="signedOut">
+      <div class="label" style="margin-bottom:8px">Sign in to track your stats</div>
+      <input id="email" type="email" placeholder="Email" autocomplete="email">
+      <input id="password" type="password" placeholder="Password (6+ characters)" autocomplete="current-password">
+      <div class="authbtns">
+        <button id="signInBtn">Sign in</button>
+        <button id="signUpBtn" class="secondary">Sign up</button>
+      </div>
+      <div id="authmsg"></div>
+    </div>
+    <div id="signedIn" style="display:none">
+      <div class="row">
+        <div class="label" id="userEmail"></div>
+        <button id="signOutBtn" class="secondary small">Sign out</button>
+      </div>
+      <div class="stats">
+        <div class="stat"><b id="statPresses">0</b><span class="label">Button presses</span></div>
+        <div class="stat"><b id="statLed">0</b><span class="label">LED commands</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <div><span class="dot" id="dot"></span><span id="status">Disconnected</span></div>
+      <button id="connectBtn">Connect</button>
+    </div>
+  </div>
+
+  <div class="card center">
+    <div class="label">LED</div>
+    <div class="bulb" id="bulb"></div>
+    <div class="btns">
+      <button id="onBtn" disabled>On</button>
+      <button id="offBtn" class="secondary" disabled>Off</button>
+      <button id="toggleBtn" class="secondary" disabled>Toggle</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="label" style="margin-bottom:8px">Messages from the ESP32</div>
+    <div id="banner">Waiting for button press…</div>
+    <div id="log"></div>
+  </div>
+
+<script>
+  // ---------- Configuration ----------
+  // Supabase dashboard -> Project Settings -> API
+  const SUPABASE_URL      = "https://vgfmsvszftckasxjyabf.supabase.co";        // e.g. https://vgfmsvszftckasxjyabf.supabase.co
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZnZm1zdnN6ZnRja2FzeGp5YWJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMxMjIzMTQsImV4cCI6MjEwODY5ODMxNH0.bcWp1u_6aVAqPWoEvhNEd5r6aSXd4-_82QFIT3UDN1M";   // the public anon key (safe with RLS enabled)
+
+  // Must match the UUIDs in the ESP32 sketch
+  const SERVICE_UUID     = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
+  const BUTTON_CHAR_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
+  const LED_CHAR_UUID    = "d1e2f3a4-0000-4a5b-9c8d-123456789abc";
+
+  const $ = id => document.getElementById(id);
+  let device = null, ledChar = null, ledOn = false;
+  const encoder = new TextEncoder(), decoder = new TextDecoder();
+
+  function log(text) {
+    const line = document.createElement("div");
+    line.textContent = new Date().toLocaleTimeString() + "  " + text;
+    $("log").prepend(line);
+  }
+
+  // ---------- Supabase ----------
+  const configured = !SUPABASE_URL.startsWith("YOUR_") && !SUPABASE_ANON_KEY.startsWith("YOUR_");
+  const db = configured ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+  let currentUser = null;
+
+  if (!configured) {
+    $("cfgwarn").style.display = "block";
+    $("authCard").style.display = "none";
+  }
+
+  function authMessage(text) {
+    const el = $("authmsg");
+    el.textContent = text;
+    el.style.display = text ? "block" : "none";
+  }
+
+  function showSession(session) {
+    currentUser = session ? session.user : null;
+    $("signedOut").style.display = currentUser ? "none" : "block";
+    $("signedIn").style.display  = currentUser ? "block" : "none";
+    if (currentUser) {
+      $("userEmail").textContent = currentUser.email;
+      authMessage("");
+      refreshStats();
+    }
+  }
+
+  async function refreshStats() {
+    if (!db || !currentUser) return;
+    const { data, error } = await db.from("my_event_counts").select("event_type, total");
+    if (error) { log("Stats error: " + error.message); return; }
+    const c = {};
+    (data || []).forEach(r => c[r.event_type] = r.total);
+    $("statPresses").textContent = c.button_press || 0;
+    $("statLed").textContent = (c.led_on || 0) + (c.led_off || 0) + (c.led_toggle || 0);
+  }
+
+  async function logEvent(type) {
+    if (!db || !currentUser) return;          // not signed in: skip silently
+    const { error } = await db.from("button_events").insert({ event_type: type });
+    if (error) { log("Save failed: " + error.message); return; }
+    refreshStats();
+  }
+
+  if (db) {
+    db.auth.getSession().then(({ data }) => showSession(data.session));
+    db.auth.onAuthStateChange((_event, session) => showSession(session));
+
+    $("signInBtn").addEventListener("click", async () => {
+      const { error } = await db.auth.signInWithPassword({ email: $("email").value, password: $("password").value });
+      if (error) authMessage(error.message);
+    });
+    $("signUpBtn").addEventListener("click", async () => {
+      const { data, error } = await db.auth.signUp({ email: $("email").value, password: $("password").value });
+      if (error) authMessage(error.message);
+      else if (!data.session) authMessage("Account created. Check your email to confirm, then sign in.");
+    });
+    $("signOutBtn").addEventListener("click", () => db.auth.signOut());
+  }
+
+  // ---------- Bluetooth ----------
+  if (!navigator.bluetooth) {
+    $("warn").style.display = "block";
+    $("connectBtn").disabled = true;
+  }
+
+  function setConnected(connected) {
+    $("dot").classList.toggle("on", connected);
+    $("status").textContent = connected ? "Connected to " + (device && device.name || "ESP32") : "Disconnected";
+    $("connectBtn").textContent = connected ? "Disconnect" : "Connect";
+    ["onBtn", "offBtn", "toggleBtn"].forEach(id => $(id).disabled = !connected);
+  }
+
+  function showLed(on) {
+    ledOn = on;
+    $("bulb").classList.toggle("on", on);
+  }
+
+  const LED_EVENT = { "1": "led_on", "0": "led_off", "t": "led_toggle" };
+
+  async function sendLed(cmd) {
+    if (!ledChar) return;
+    try {
+      await ledChar.writeValue(encoder.encode(cmd));
+      if (cmd === "1") showLed(true);
+      else if (cmd === "0") showLed(false);
+      else showLed(!ledOn);
+      log("Sent LED command: " + cmd);
+      logEvent(LED_EVENT[cmd]);
+    } catch (e) {
+      log("Write failed: " + e.message);
+    }
+  }
+
+  function onButtonMessage(event) {
+    const text = decoder.decode(event.target.value);
+    const banner = $("banner");
+    banner.textContent = text;
+    banner.classList.add("flash");
+    setTimeout(() => banner.classList.remove("flash"), 400);
+    log("Received: " + text);
+    if (navigator.vibrate) navigator.vibrate(60);
+    logEvent("button_press");
+  }
+
+  async function connect() {
+    try {
+      device = await navigator.bluetooth.requestDevice({ filters: [{ services: [SERVICE_UUID] }] });
+      device.addEventListener("gattserverdisconnected", () => {
+        setConnected(false);
+        ledChar = null;
+        log("Disconnected");
+      });
+      const server  = await device.gatt.connect();
+      const service = await server.getPrimaryService(SERVICE_UUID);
+      ledChar = await service.getCharacteristic(LED_CHAR_UUID);
+      const buttonChar = await service.getCharacteristic(BUTTON_CHAR_UUID);
+      await buttonChar.startNotifications();
+      buttonChar.addEventListener("characteristicvaluechanged", onButtonMessage);
+      setConnected(true);
+      log("Connected");
+    } catch (e) {
+      log("Connect failed: " + e.message);
+      setConnected(false);
+    }
+  }
+
+  $("connectBtn").addEventListener("click", () => {
+    if (device && device.gatt.connected) device.gatt.disconnect();
+    else connect();
+  });
+  $("onBtn").addEventListener("click",     () => sendLed("1"));
+  $("offBtn").addEventListener("click",    () => sendLed("0"));
+  $("toggleBtn").addEventListener("click", () => sendLed("t"));
+</script>
+</body>
+</html>
