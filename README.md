@@ -149,6 +149,7 @@ Create a second account and confirm each user only sees their own counts.
 
 ## 9. Ideas for next steps
 
+- FIND AND FIX BUTTON PRESS BUG that prevents button presses from being logged on web app
 - ESP32 reports LED state back, so the app always shows the true state
 - History chart of presses over time
 - Leaderboard across users
