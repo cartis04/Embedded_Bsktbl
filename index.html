@@ -3,258 +3,214 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>ESP32 Controller</title>
+<title>Hoop Shot Clock</title>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Share+Tech+Mono&family=Barlow:wght@500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <style>
-  :root {
-    --bg: #f4f5f7; --card: #ffffff; --text: #1a1c20; --muted: #6b7280;
-    --accent: #2563eb; --on: #f5b301; --off: #d1d5db; --ok: #16a34a; --bad: #dc2626;
-    --border: #e5e7eb; --input: #ffffff;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg: #0f1115; --card: #1a1d23; --text: #eef0f3; --muted: #9aa1ad;
-      --accent: #5b8def; --off: #3a3f48; --border: #2a2e36; --input: #11141a;
-    }
-  }
-  * { box-sizing: border-box; }
-  html, body { margin: 0; background: var(--bg); color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-  body { padding: calc(16px + env(safe-area-inset-top, 0px)) 16px calc(16px + env(safe-area-inset-bottom, 0px)); max-width: 480px; margin: 0 auto; }
-  h1 { font-size: 1.3rem; margin: 0 0 12px; }
-  .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin-bottom: 14px; }
-  .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--bad); display: inline-block; margin-right: 8px; }
-  .dot.on { background: var(--ok); }
-  button { font: inherit; border: 0; border-radius: 12px; padding: 14px 18px; background: var(--accent); color: #fff; font-weight: 600; cursor: pointer; }
-  button:disabled { opacity: .4; cursor: not-allowed; }
-  button.secondary { background: var(--off); color: var(--text); }
-  button.small { padding: 8px 12px; font-size: .85rem; }
-  input { font: inherit; width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--input); color: var(--text); margin-bottom: 8px; }
-  .btns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 12px; }
-  .bulb { width: 72px; height: 72px; border-radius: 50%; background: var(--off); transition: .2s; margin: 0 auto 6px; }
-  .bulb.on { background: var(--on); box-shadow: 0 0 28px var(--on); }
-  .center { text-align: center; }
-  .label { color: var(--muted); font-size: .85rem; }
-  #banner { font-size: 1.5rem; font-weight: 700; text-align: center; padding: 18px 8px; border-radius: 12px; background: var(--bg); transition: .2s; }
-  #banner.flash { background: var(--accent); color: #fff; }
-  #log { font-family: ui-monospace, Menlo, monospace; font-size: .8rem; color: var(--muted); max-height: 120px; overflow-y: auto; margin-top: 10px; }
-  #warn, #cfgwarn, #authmsg { display: none; border-radius: 12px; padding: 12px; margin-bottom: 14px; font-size: .9rem; background: #fef3c7; color: #78350f; }
-  #authmsg { margin: 8px 0 0; }
-  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
-  .stat { background: var(--bg); border-radius: 12px; padding: 12px; text-align: center; }
-  .stat b { display: block; font-size: 1.8rem; }
-  .authbtns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+:root{--court:#0c1b3a;--court2:#13295a;--line:#e9eefc;--ball:#ff7a1a;--seg:#ff4d3d;--ok:#37d67a;--mute:#8fa0c8;--card:#16306a}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--court);color:var(--line);font-family:Barlow,system-ui,sans-serif;font-weight:500}
+body{max-width:480px;margin:0 auto;padding:calc(14px + env(safe-area-inset-top,0px)) 16px calc(24px + env(safe-area-inset-bottom,0px));
+ background:radial-gradient(circle at 50% -10%,var(--court2),var(--court) 60%);min-height:100vh}
+h1,h2,.big{font-family:Anton,Impact,sans-serif;font-weight:400;letter-spacing:.02em;margin:0}
+h1{font-size:2rem}h2{font-size:1.3rem}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.pill{font-size:.85rem;padding:6px 12px;border-radius:99px;border:1.5px solid var(--mute);background:none;color:var(--line);font-family:inherit}
+.pill.on{border-color:var(--ok);color:var(--ok)}
+.panel{border:2px solid var(--line);border-radius:6px;padding:16px;margin-bottom:14px;background:rgba(10,20,50,.55)}
+.muted{color:var(--mute);font-size:.9rem}
+button{font:inherit;font-weight:700;cursor:pointer;border:0;border-radius:6px;padding:14px;color:#fff;background:var(--ball)}
+button:disabled{opacity:.4}button.ghost{background:none;border:2px solid var(--line)}
+button:focus-visible,input:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.full{width:100%}.row{display:flex;gap:10px}.row>*{flex:1}
+.diff button{background:none;border:2px solid var(--mute);color:var(--line)}
+.diff button.sel{border-color:var(--ball);background:var(--ball);color:#fff}
+table{width:100%;border-collapse:collapse;font-size:.9rem;margin-top:8px}
+td,th{padding:6px 4px;border-bottom:1px solid #2a4380;text-align:left;font-weight:500}th{color:var(--mute)}
+input{width:100%;font:inherit;padding:12px;border-radius:6px;border:2px solid var(--mute);background:var(--court);color:var(--line);margin-bottom:8px}
+.hide{display:none!important}
+/* play screen */
+.clock{font-family:"Share Tech Mono",monospace;font-size:6.5rem;line-height:1;text-align:center;color:var(--seg);text-shadow:0 0 18px rgba(255,77,61,.55);margin:6px 0}
+.clock.low{animation:pulse .5s infinite alternate}
+@keyframes pulse{to{opacity:.45}}
+.rd{text-align:center}.rd .big{font-size:1.6rem}
+.pips{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:14px 0}
+.pip{width:30px;height:30px;border-radius:50%;border:2.5px solid var(--mute);transition:.15s}
+.pip.made{background:var(--ball);border-color:var(--ball);box-shadow:0 0 14px var(--ball)}
+.count{font-family:Anton;font-size:3rem;text-align:center}
+.arc{height:70px;border:2px solid #2a4380;border-top:0;border-radius:0 0 140px 140px;margin:6px 30px 12px}
+.flash{animation:fl .35s}@keyframes fl{from{background:rgba(55,214,122,.45)}}
+.banner{text-align:center;padding:26px 8px}.banner .big{font-size:2.4rem}
+.win{color:var(--ok)}.lose{color:var(--seg)}
+@media (prefers-reduced-motion:reduce){.clock.low,.flash{animation:none}}
 </style>
 </head>
 <body>
-  <h1>ESP32 Controller</h1>
+<div class="top"><h1>Hoop Shot Clock</h1><button class="pill" id="conn">Connect hoop</button></div>
 
-  <div id="warn">Web Bluetooth is not available in this browser. Use Chrome on Android or desktop, or the Bluefy browser on iPhone.</div>
-  <div id="cfgwarn">Supabase is not configured yet. Edit SUPABASE_URL and SUPABASE_ANON_KEY at the top of the script. The app still works for Bluetooth, but nothing is saved.</div>
-
-  <!-- Account / stats -->
-  <div class="card" id="authCard">
-    <div id="signedOut">
-      <div class="label" style="margin-bottom:8px">Sign in to track your stats</div>
-      <input id="email" type="email" placeholder="Email" autocomplete="email">
-      <input id="password" type="password" placeholder="Password (6+ characters)" autocomplete="current-password">
-      <div class="authbtns">
-        <button id="signInBtn">Sign in</button>
-        <button id="signUpBtn" class="secondary">Sign up</button>
-      </div>
-      <div id="authmsg"></div>
-    </div>
-    <div id="signedIn" style="display:none">
-      <div class="row">
-        <div class="label" id="userEmail"></div>
-        <button id="signOutBtn" class="secondary small">Sign out</button>
-      </div>
-      <div class="stats">
-        <div class="stat"><b id="statPresses">0</b><span class="label">Button presses</span></div>
-        <div class="stat"><b id="statLed">0</b><span class="label">LED commands</span></div>
-      </div>
-    </div>
+<!-- LOBBY -->
+<section id="lobby">
+ <div class="panel">
+  <h2>Pick a difficulty</h2>
+  <div class="row diff" style="margin:12px 0"><button id="dEasy" class="sel">Easy</button><button id="dHard">Hard</button></div>
+  <div class="muted" id="ruleText"></div>
+  <div class="arc"></div>
+  <button class="full" id="startBtn">Start game</button>
+  <button class="full ghost hide" id="simBtn" style="margin-top:10px">Test shot (no hoop connected)</button>
+ </div>
+ <div class="panel" id="acct">
+  <div id="out">
+   <div class="muted" style="margin-bottom:8px">Sign in to save your games. Guests can still play.</div>
+   <input id="email" type="email" placeholder="Email" autocomplete="email">
+   <input id="pw" type="password" placeholder="Password (6+ characters)" autocomplete="current-password">
+   <div class="row"><button id="inBtn">Sign in</button><button id="upBtn" class="ghost">Sign up</button></div>
+   <div class="muted" id="amsg" style="margin-top:8px"></div>
   </div>
-
-  <div class="card">
-    <div class="row">
-      <div><span class="dot" id="dot"></span><span id="status">Disconnected</span></div>
-      <button id="connectBtn">Connect</button>
-    </div>
+  <div id="inn" class="hide">
+   <div class="row" style="align-items:center"><div class="muted" id="who"></div><button class="ghost" id="outBtn" style="flex:0 0 auto;padding:8px 12px">Sign out</button></div>
+   <h2 style="margin-top:12px">Your games</h2>
+   <div class="muted" id="sum">No games yet. Play one!</div>
+   <table id="hist"></table>
   </div>
+ </div>
+</section>
 
-  <div class="card center">
-    <div class="label">LED</div>
-    <div class="bulb" id="bulb"></div>
-    <div class="btns">
-      <button id="onBtn" disabled>On</button>
-      <button id="offBtn" class="secondary" disabled>Off</button>
-      <button id="toggleBtn" class="secondary" disabled>Toggle</button>
-    </div>
-  </div>
+<!-- PLAY -->
+<section id="play" class="hide">
+ <div class="panel" id="board">
+  <div class="rd"><div class="big" id="rdLabel"></div><div class="muted" id="goal"></div></div>
+  <div class="clock" id="clock">30.0</div>
+  <div class="count"><span id="made">0</span> / <span id="need">0</span></div>
+  <div class="pips" id="pips"></div>
+  <div class="muted" style="text-align:center">Total shots: <span id="total">0</span></div>
+ </div>
+ <div id="bannerBox" class="panel banner hide"><div class="big" id="bannerTxt"></div><div class="muted" id="bannerSub"></div></div>
+ <div class="row"><button class="ghost" id="quitBtn">Quit game</button><button class="ghost hide" id="simBtn2">Test shot</button></div>
+</section>
 
-  <div class="card">
-    <div class="label" style="margin-bottom:8px">Messages from the ESP32</div>
-    <div id="banner">Waiting for button press…</div>
-    <div id="log"></div>
-  </div>
+<!-- RESULT -->
+<section id="result" class="hide">
+ <div class="panel banner"><div class="big" id="resTitle"></div><div id="resText" style="margin:10px 0"></div><div class="muted" id="saveMsg"></div></div>
+ <button class="full" id="againBtn">Play again</button>
+</section>
 
 <script>
-  // ---------- Configuration ----------
-  // Supabase dashboard -> Project Settings -> API
-  const SUPABASE_URL      = "https://vgfmsvszftckasxjyabf.supabase.co";        // e.g. https://vgfmsvszftckasxjyabf.supabase.co
-  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZnZm1zdnN6ZnRja2FzeGp5YWJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMxMjIzMTQsImV4cCI6MjEwODY5ODMxNH0.bcWp1u_6aVAqPWoEvhNEd5r6aSXd4-_82QFIT3UDN1M";   // the public anon key (safe with RLS enabled)
+// ---------- Config ----------
+const SUPABASE_URL="https://vgfmsvszftckasxjyabf.supabase.co";
+const SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZnZm1zdnN6ZnRja2FzeGp5YWJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMxMjIzMTQsImV4cCI6MjEwODY5ODMxNH0.bcWp1u_6aVAqPWoEvhNEd5r6aSXd4-_82QFIT3UDN1M";
+const SERVICE_UUID="4fafc201-1fb5-459e-8fcc-c5c9c331914b";
+const SENSOR_CHAR_UUID="beb5483e-36e1-4688-b7f5-ea07361b26a8";  // break-beam notify
+const LED_CHAR_UUID="d1e2f3a4-0000-4a5b-9c8d-123456789abc";     // green LED write
+// Game rules from the team proposal: [shots needed, seconds] per round
+const RULES={easy:[[3,30],[5,25],[7,20]],hard:[[5,30],[7,25],[9,20]]};
+const SHOT_MSG=/ball|detect|broken|shot|press/i, NOT_SHOT=/clear/i, DEBOUNCE_MS=400;
 
-  // Must match the UUIDs in the ESP32 sketch
-  const SERVICE_UUID     = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
-  const BUTTON_CHAR_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
-  const LED_CHAR_UUID    = "d1e2f3a4-0000-4a5b-9c8d-123456789abc";
+const $=id=>document.getElementById(id), show=(id,on)=>$(id).classList.toggle("hide",!on);
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+let user=null, diff="easy", G=null, ledChar=null, device=null, lastShot=0, timer=null;
 
-  const $ = id => document.getElementById(id);
-  let device = null, ledChar = null, ledOn = false;
-  const encoder = new TextEncoder(), decoder = new TextDecoder();
+function screen(name){["lobby","play","result"].forEach(s=>show(s,s===name))}
+function ruleText(){return RULES[diff].map((r,i)=>"Round "+(i+1)+": "+r[0]+" shots in "+r[1]+"s").join("  |  ")}
+function setDiff(d){diff=d;$("dEasy").classList.toggle("sel",d==="easy");$("dHard").classList.toggle("sel",d==="hard");$("ruleText").textContent=ruleText()}
+$("dEasy").onclick=()=>setDiff("easy");$("dHard").onclick=()=>setDiff("hard");setDiff("easy");
 
-  function log(text) {
-    const line = document.createElement("div");
-    line.textContent = new Date().toLocaleTimeString() + "  " + text;
-    $("log").prepend(line);
+// ---------- Game engine ----------
+function startGame(){
+  G={round:0,made:0,total:0,phase:"between",endAt:0};
+  screen("play");beginRound();
+}
+function beginRound(){
+  const [need,limit]=RULES[diff][G.round];
+  Object.assign(G,{need,limit,made:0,phase:"between"});
+  $("rdLabel").textContent="Round "+(G.round+1)+" of "+RULES[diff].length;
+  $("goal").textContent="Make "+need+" in "+limit+" seconds";
+  $("need").textContent=need;$("clock").textContent=limit.toFixed(1);
+  show("bannerBox",true);$("bannerTxt").textContent="Get ready";$("bannerSub").textContent=need+" shots, "+limit+" seconds";
+  renderPips();render();clearInterval(timer);
+  setTimeout(()=>{if(!G||G.phase!=="between")return;
+    G.phase="play";G.endAt=Date.now()+limit*1000;show("bannerBox",false);
+    timer=setInterval(tick,100);},2200);
+}
+function tick(){
+  const left=Math.max(0,G.endAt-Date.now());
+  $("clock").textContent=(left/1000).toFixed(1);
+  $("clock").classList.toggle("low",left<5000);
+  if(left<=0)finish(false);
+}
+function renderPips(){$("pips").innerHTML=Array.from({length:G.need},(_,i)=>'<div class="pip" id="p'+i+'"></div>').join("")}
+function render(){$("made").textContent=G.made;$("total").textContent=G.total;
+  for(let i=0;i<G.need;i++)$("p"+i)&&$("p"+i).classList.toggle("made",i<G.made)}
+function onShot(){
+  if(!G||G.phase!=="play")return;
+  const now=Date.now();if(now-lastShot<DEBOUNCE_MS)return;lastShot=now;
+  G.made++;G.total++;render();
+  const b=$("board");b.classList.remove("flash");void b.offsetWidth;b.classList.add("flash");
+  if(navigator.vibrate)navigator.vibrate(60);flashLed();
+  if(G.made>=G.need){
+    clearInterval(timer);G.phase="between";
+    if(G.round===RULES[diff].length-1)return finish(true);
+    G.round++;show("bannerBox",true);$("bannerTxt").textContent="Round cleared";$("bannerSub").textContent="Next round starting";
+    setTimeout(beginRound,1200);
   }
+}
+async function finish(won){
+  clearInterval(timer);if(!G)return;G.phase="over";
+  const cleared=won?RULES[diff].length:G.round;
+  $("resTitle").textContent=won?"You cleared every round":"Time is up";
+  $("resTitle").className="big "+(won?"win":"lose");
+  $("resText").textContent=(won?"All "+cleared+" rounds":"Rounds cleared: "+cleared)+" on "+diff+". Total shots made: "+G.total+".";
+  $("saveMsg").textContent="";screen("result");
+  if(navigator.vibrate)navigator.vibrate(won?[80,60,80]:300);
+  if(user){
+    const {error}=await db.from("game_sessions").insert({difficulty:diff,rounds_cleared:cleared,total_shots:G.total,won});
+    $("saveMsg").textContent=error?"Could not save: "+error.message:"Game saved to your account.";
+    loadHistory();
+  }else $("saveMsg").textContent="Sign in on the home screen to save games.";
+}
+$("startBtn").onclick=startGame;
+$("quitBtn").onclick=()=>{clearInterval(timer);G=null;screen("lobby")};
+$("againBtn").onclick=()=>screen("lobby");
+$("simBtn").onclick=$("simBtn2").onclick=onShot;
 
-  // ---------- Supabase ----------
-  const configured = !SUPABASE_URL.startsWith("YOUR_") && !SUPABASE_ANON_KEY.startsWith("YOUR_");
-  const db = configured ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
-  let currentUser = null;
-
-  if (!configured) {
-    $("cfgwarn").style.display = "block";
-    $("authCard").style.display = "none";
-  }
-
-  function authMessage(text) {
-    const el = $("authmsg");
-    el.textContent = text;
-    el.style.display = text ? "block" : "none";
-  }
-
-  function showSession(session) {
-    currentUser = session ? session.user : null;
-    $("signedOut").style.display = currentUser ? "none" : "block";
-    $("signedIn").style.display  = currentUser ? "block" : "none";
-    if (currentUser) {
-      $("userEmail").textContent = currentUser.email;
-      authMessage("");
-      refreshStats();
-    }
-  }
-
-  async function refreshStats() {
-    if (!db || !currentUser) return;
-    const { data, error } = await db.from("my_event_counts").select("event_type, total");
-    if (error) { log("Stats error: " + error.message); return; }
-    const c = {};
-    (data || []).forEach(r => c[r.event_type] = r.total);
-    $("statPresses").textContent = c.button_press || 0;
-    $("statLed").textContent = (c.led_on || 0) + (c.led_off || 0) + (c.led_toggle || 0);
-  }
-
-  async function logEvent(type) {
-    if (!db || !currentUser) return;          // not signed in: skip silently
-    const { error } = await db.from("button_events").insert({ event_type: type });
-    if (error) { log("Save failed: " + error.message); return; }
-    refreshStats();
-  }
-
-  if (db) {
-    db.auth.getSession().then(({ data }) => showSession(data.session));
-    db.auth.onAuthStateChange((_event, session) => showSession(session));
-
-    $("signInBtn").addEventListener("click", async () => {
-      const { error } = await db.auth.signInWithPassword({ email: $("email").value, password: $("password").value });
-      if (error) authMessage(error.message);
+// ---------- Bluetooth ----------
+async function flashLed(){if(!ledChar)return;try{const e=new TextEncoder();await ledChar.writeValue(e.encode("1"));setTimeout(()=>ledChar&&ledChar.writeValue(e.encode("0")).catch(()=>{}),300)}catch(_){}}
+function setConn(on){$("conn").textContent=on?"Hoop connected":"Connect hoop";$("conn").classList.toggle("on",on);
+  show("simBtn",!on);show("simBtn2",!on)}
+setConn(false);
+if(!navigator.bluetooth){$("conn").disabled=true;$("conn").textContent="Bluetooth unavailable (use Chrome or Bluefy)"}
+$("conn").onclick=async()=>{
+  if(device&&device.gatt.connected){device.gatt.disconnect();return}
+  try{
+    device=await navigator.bluetooth.requestDevice({filters:[{services:[SERVICE_UUID]}]});
+    device.addEventListener("gattserverdisconnected",()=>{ledChar=null;setConn(false)});
+    const svc=await (await device.gatt.connect()).getPrimaryService(SERVICE_UUID);
+    ledChar=await svc.getCharacteristic(LED_CHAR_UUID).catch(()=>null);
+    const s=await svc.getCharacteristic(SENSOR_CHAR_UUID);
+    await s.startNotifications();
+    s.addEventListener("characteristicvaluechanged",e=>{
+      const t=new TextDecoder().decode(e.target.value);
+      if(SHOT_MSG.test(t)&&!NOT_SHOT.test(t))onShot();
     });
-    $("signUpBtn").addEventListener("click", async () => {
-      const { data, error } = await db.auth.signUp({ email: $("email").value, password: $("password").value });
-      if (error) authMessage(error.message);
-      else if (!data.session) authMessage("Account created. Check your email to confirm, then sign in.");
-    });
-    $("signOutBtn").addEventListener("click", () => db.auth.signOut());
-  }
+    setConn(true);
+  }catch(e){setConn(false)}
+};
 
-  // ---------- Bluetooth ----------
-  if (!navigator.bluetooth) {
-    $("warn").style.display = "block";
-    $("connectBtn").disabled = true;
-  }
-
-  function setConnected(connected) {
-    $("dot").classList.toggle("on", connected);
-    $("status").textContent = connected ? "Connected to " + (device && device.name || "ESP32") : "Disconnected";
-    $("connectBtn").textContent = connected ? "Disconnect" : "Connect";
-    ["onBtn", "offBtn", "toggleBtn"].forEach(id => $(id).disabled = !connected);
-  }
-
-  function showLed(on) {
-    ledOn = on;
-    $("bulb").classList.toggle("on", on);
-  }
-
-  const LED_EVENT = { "1": "led_on", "0": "led_off", "t": "led_toggle" };
-
-  async function sendLed(cmd) {
-    if (!ledChar) return;
-    try {
-      await ledChar.writeValue(encoder.encode(cmd));
-      if (cmd === "1") showLed(true);
-      else if (cmd === "0") showLed(false);
-      else showLed(!ledOn);
-      log("Sent LED command: " + cmd);
-      logEvent(LED_EVENT[cmd]);
-    } catch (e) {
-      log("Write failed: " + e.message);
-    }
-  }
-
-  function onButtonMessage(event) {
-    const text = decoder.decode(event.target.value);
-    const banner = $("banner");
-    banner.textContent = text;
-    banner.classList.add("flash");
-    setTimeout(() => banner.classList.remove("flash"), 400);
-    log("Received: " + text);
-    if (navigator.vibrate) navigator.vibrate(60);
-    logEvent("button_press");
-  }
-
-  async function connect() {
-    try {
-      device = await navigator.bluetooth.requestDevice({ filters: [{ services: [SERVICE_UUID] }] });
-      device.addEventListener("gattserverdisconnected", () => {
-        setConnected(false);
-        ledChar = null;
-        log("Disconnected");
-      });
-      const server  = await device.gatt.connect();
-      const service = await server.getPrimaryService(SERVICE_UUID);
-      ledChar = await service.getCharacteristic(LED_CHAR_UUID);
-      const buttonChar = await service.getCharacteristic(BUTTON_CHAR_UUID);
-      await buttonChar.startNotifications();
-      buttonChar.addEventListener("characteristicvaluechanged", onButtonMessage);
-      setConnected(true);
-      log("Connected");
-    } catch (e) {
-      log("Connect failed: " + e.message);
-      setConnected(false);
-    }
-  }
-
-  $("connectBtn").addEventListener("click", () => {
-    if (device && device.gatt.connected) device.gatt.disconnect();
-    else connect();
-  });
-  $("onBtn").addEventListener("click",     () => sendLed("1"));
-  $("offBtn").addEventListener("click",    () => sendLed("0"));
-  $("toggleBtn").addEventListener("click", () => sendLed("t"));
+// ---------- Accounts and history ----------
+async function loadHistory(){
+  const {data,error}=await db.from("game_sessions").select("difficulty,rounds_cleared,total_shots,won,created_at").order("created_at",{ascending:false}).limit(50);
+  if(error||!data)return;
+  const wins=data.filter(g=>g.won).length,best=data.reduce((m,g)=>Math.max(m,g.total_shots),0);
+  $("sum").textContent=data.length?data.length+" games, "+wins+" full clears, best "+best+" shots":"No games yet. Play one!";
+  $("hist").innerHTML=data.length?"<tr><th>Date</th><th>Mode</th><th>Rounds</th><th>Shots</th></tr>"+data.slice(0,5).map(g=>
+   "<tr><td>"+new Date(g.created_at).toLocaleDateString()+"</td><td>"+g.difficulty+"</td><td>"+g.rounds_cleared+"/3</td><td>"+g.total_shots+"</td></tr>").join(""):"";
+}
+function session(s){user=s?s.user:null;show("out",!user);show("inn",!!user);if(user){$("who").textContent=user.email;loadHistory()}}
+db.auth.getSession().then(({data})=>session(data.session));
+db.auth.onAuthStateChange((_e,s)=>session(s));
+$("inBtn").onclick=async()=>{const {error}=await db.auth.signInWithPassword({email:$("email").value,password:$("pw").value});$("amsg").textContent=error?error.message:""};
+$("upBtn").onclick=async()=>{const {data,error}=await db.auth.signUp({email:$("email").value,password:$("pw").value});
+  $("amsg").textContent=error?error.message:(!data.session?"Account created. Confirm your email, then sign in.":"")};
+$("outBtn").onclick=()=>db.auth.signOut();
 </script>
 </body>
 </html>
